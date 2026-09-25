@@ -1,6 +1,19 @@
 import os
+import threading
 import discord
 from google import genai
+from flask import Flask
+
+# Flask web server da Render ne izbacuje Deploy Failed
+app = Flask(__name__)
+
+@app.route('/')
+def home():
+    return "Žile bot je aktivan!"
+
+def run_flask():
+    port = int(os.environ.get("PORT", 10000))
+    app.run(host='0.0.0.0', port=port)
 
 # Inicijalizacija Discord klijenta
 intents = discord.Intents.default()
@@ -16,13 +29,10 @@ async def on_ready():
 
 @client.event
 async def on_message(message):
-    # Ignoriši poruke od samog bota
     if message.author == client.user:
         return
 
-    # Proveri da li je bot tagovan
     if client.user.mentioned_in(message):
-        # Ukloni tag iz poruke da ostane samo pitanje
         clean_text = message.content.replace(f'<@{client.user.id}>', '').strip()
         
         if not clean_text:
@@ -42,4 +52,9 @@ async def on_message(message):
                 print(f"Greška: {e}")
                 await message.channel.send("Greška pri obradi poruke.")
 
-client.run(os.getenv("DISCORD_TOKEN"))
+if __name__ == "__main__":
+    # Pokreni Flask u posebnom thread-u
+    threading.Thread(target=run_flask, daemon=True).start()
+    # Pokreni Discord bota
+    client.run(os.getenv("DISCORD_TOKEN"))
+

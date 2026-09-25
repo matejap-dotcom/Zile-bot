@@ -1,27 +1,23 @@
 import os
 import threading
 import discord
-from google import genai
+import google.generativeai as genai
 from flask import Flask
 
-# Flask web server da Render ne izbacuje Deploy Failed
 app = Flask(__name__)
 
 @app.route('/')
 def home():
-    return "Žile bot je aktivan!"
+    return "Žile je živ!"
 
-def run_flask():
-    port = int(os.environ.get("PORT", 10000))
-    app.run(host='0.0.0.0', port=port)
+# Inicijalizacija Gemini AI
+genai.configure(api_key=os.getenv("GEMINI_API_KEY"))
+model = genai.GenerativeModel('gemini-1.5-flash')
 
 # Inicijalizacija Discord klijenta
 intents = discord.Intents.default()
 intents.message_content = True
 client = discord.Client(intents=intents)
-
-# Inicijalizacija Gemini AI
-ai_client = genai.Client(api_key=os.getenv("GEMINI_API_KEY"))
 
 @client.event
 async def on_ready():
@@ -42,19 +38,22 @@ async def on_message(message):
         async with message.channel.typing():
             try:
                 prompt = f"Ti si Discord bot po imenu Žile. Odgovori izuzetno kratko, direktno i prirodno na srpskom (maksimalno 1 do 2 rečenice) na sledeće pitanje: {clean_text}"
-                
-                response = ai_client.models.generate_content(
-                    model='gemini-2.5-flash',
-                    contents=prompt,
-                )
+                response = model.generate_content(prompt)
                 await message.channel.send(response.text)
             except Exception as e:
                 print(f"Greška: {e}")
                 await message.channel.send("Greška pri obradi poruke.")
 
+def start_bot():
+    token = os.getenv("DISCORD_TOKEN")
+    if token:
+        client.run(token)
+
+# Pokrećemo bota odmah pri učitavanju modula od strane Gunicorna
+bot_thread = threading.Thread(target=start_bot, daemon=True)
+bot_thread.start()
+
 if __name__ == "__main__":
-    # Pokreni Flask u posebnom thread-u
-    threading.Thread(target=run_flask, daemon=True).start()
-    # Pokreni Discord bota
-    client.run(os.getenv("DISCORD_TOKEN"))
+    port = int(os.environ.get("PORT", 10000))
+    app.run(host='0.0.0.0', port=port)
 

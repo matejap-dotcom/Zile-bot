@@ -1,14 +1,6 @@
 import os
-import threading
 import discord
 import google.generativeai as genai
-from flask import Flask
-
-app = Flask(__name__)
-
-@app.route('/')
-def home():
-    return "Žile je živ!"
 
 # Inicijalizacija Gemini AI
 genai.configure(api_key=os.getenv("GEMINI_API_KEY"))
@@ -44,16 +36,6 @@ async def on_message(message):
                 print(f"Greška: {e}")
                 await message.channel.send("Greška pri obradi poruke.")
 
-def start_bot():
-    token = os.getenv("DISCORD_TOKEN")
-    if token:
-        client.run(token)
-
-# Pokrećemo bota odmah pri učitavanju modula od strane Gunicorna
-bot_thread = threading.Thread(target=start_bot, daemon=True)
-bot_thread.start()
-
 if __name__ == "__main__":
-    port = int(os.environ.get("PORT", 10000))
-    app.run(host='0.0.0.0', port=port)
-
+    token = os.getenv("DISCORD_TOKEN")
+    client.run(token)
